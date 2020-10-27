@@ -33,7 +33,7 @@ exports.readAll = (callback) => {
       throw ('We have an error trying to read all files');
     } else {
       var data = files.map((x) => {
-        exports.readOne(x, (err, callback) => {
+        exports.readOne(x, (err) => {
 
         });
       });
@@ -55,13 +55,20 @@ exports.readOne = (id, callback) => {
 };
 
 exports.update = (id, text, callback) => {
-  var item = items[id];
-  if (!item) {
-    callback(new Error(`No item with id: ${id}`));
-  } else {
-    items[id] = text;
-    callback(null, { id, text });
-  }
+  var filePath = path.join(exports.dataDir, `${id}.txt`);
+  fs.readFile(filePath, 'utf8', (err) => {
+    if (err) {
+      callback(new Error(`No item with id: ${id}`));
+    } else {
+      fs.writeFile(filePath, text, (err) => {
+        if (err) {
+          throw ('We have an error trying to make file');
+        } else {
+          callback(null, { id, text });
+        }
+      });
+    }
+  });
 };
 
 exports.delete = (id, callback) => {

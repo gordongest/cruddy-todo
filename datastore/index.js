@@ -2,31 +2,56 @@ const fs = require('fs');
 const path = require('path');
 const _ = require('underscore');
 const counter = require('./counter');
+const express = require('express');
+const app = express();
 
-var items = {};
+//create seperate files for each item where the key is the id(counter)?-
+//(err, count) => { if (err) { console.log('error'); } else { return count; } }
 
 // Public API - Fix these CRUD functions ///////////////////////////////////////
 
 exports.create = (text, callback) => {
-  var id = counter.getNextUniqueId();
-  items[id] = text;
-  callback(null, { id, text });
+  counter.getNextUniqueId((err, id) => {
+    var filePath = path.join(exports.dataDir, `${id}.txt`);
+    if (err) {
+      console.log('error');
+    } else {
+      fs.writeFile(filePath, text, (err) => {
+        if (err) {
+          throw ('We have an error trying to make file');
+        } else {
+          callback(null, { id, text });
+        }
+      });
+    }
+  });
 };
 
 exports.readAll = (callback) => {
-  var data = _.map(items, (text, id) => {
-    return { id, text };
+  fs.readdir(exports.dataDir, (err, files) => {
+    if (err) {
+      throw ('We have an error trying to read all files');
+    } else {
+      var data = files.map((x) => {
+        exports.readOne(x, (err, callback) => {
+
+        });
+      });
+      callback(null, data);
+    }
   });
-  callback(null, data);
 };
 
 exports.readOne = (id, callback) => {
-  var text = items[id];
-  if (!text) {
-    callback(new Error(`No item with id: ${id}`));
-  } else {
-    callback(null, { id, text });
-  }
+  var filePath = path.join(exports.dataDir, `${id}.txt`);
+  fs.readFile(filePath, 'utf8', (err, text) => {
+    if (err) {
+      callback(new Error(`No item with id: ${id}`));
+    } else {
+      var object = {id: id, text: text};
+      callback(null, object);
+    }
+  });
 };
 
 exports.update = (id, text, callback) => {
@@ -48,6 +73,7 @@ exports.delete = (id, callback) => {
   } else {
     callback();
   }
+
 };
 
 // Config+Initialization code -- DO NOT MODIFY /////////////////////////////////

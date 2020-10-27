@@ -38,13 +38,40 @@ const writeCounter = (count, callback) => {
 
 // Public API - Fix this function //////////////////////////////////////////////
 
-exports.getNextUniqueId = () => {
-  counter = counter + 1;
-  return zeroPaddedNumber(counter);
+exports.getNextUniqueId = (callback) => {
+  return readCounter((err, fileData) => {
+    fileData++;
+    writeCounter(fileData, (err, counterString) => {
+      callback(null, counterString);
+    });
+  });
 };
-
 
 
 // Configuration -- DO NOT MODIFY //////////////////////////////////////////////
 
 exports.counterFile = path.join(__dirname, 'counter.txt');
+console.log(exports.counterFile);
+
+
+/*
+
+readCounter(writeCounter) {
+  if (err) {
+    writeCounter(null, 0)
+  } else {
+    writeCounter(null, Number(fileData))
+  }
+}
+
+writeCounter( Number(fileData), (err, counter) => {
+  if (err) {
+    throw (err)
+  } else {
+    callback( null, Number(fileData) )
+  }
+})
+
+callback = (null, fileData) => { return `your number is ${fileData}` }
+
+*/

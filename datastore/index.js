@@ -2,8 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const _ = require('underscore');
 const counter = require('./counter');
-const express = require('express');
-const app = express();
+var Promise = require('bluebird');
+var readFilePromise = Promise.promisify(fs.readFile);
+var fsAll = Promise.promisifyAll(fs);
 
 //create seperate files for each item where the key is the id(counter)?-
 //(err, count) => { if (err) { console.log('error'); } else { return count; } }
@@ -28,19 +29,29 @@ exports.create = (text, callback) => {
 };
 
 exports.readAll = (callback) => {
+
   fs.readdir(exports.dataDir, (err, files) => {
     if (err) {
-      throw ('We have an error trying to read all files');
-    } else {
-      var data = files.map((x) => {
-        exports.readOne(x, (err) => {
-
-        });
-      });
-      callback(null, data);
+      throw ('error');
     }
+    var data = _.map(files, (file) => {
+      var id = path.basename(file, '.txt');
+      var filePath = path.join(exports.dataDir, file);
+      return readFilePromise(filePath).then(fileData => {
+        return {
+          id: id,
+          text: fileData.toString()
+        };
+      });
+    });
+    Promise.all(data)
+      .then(items => callback(null, items), err => callback(err));
   });
 };
+
+/*
+Promise.all([...toDos]).then((toDos) => {return toDos})
+*/
 
 exports.readOne = (id, callback) => {
   var filePath = path.join(exports.dataDir, `${id}.txt`);
@@ -62,7 +73,7 @@ exports.update = (id, text, callback) => {
     } else {
       fs.writeFile(filePath, text, (err) => {
         if (err) {
-          throw ('We have an error trying to update file');
+          throw (`We have an error trying to update file: ${id}`);
         } else {
           callback(null, { id, text });
         }
@@ -91,3 +102,68 @@ exports.initialize = () => {
     fs.mkdirSync(exports.dataDir);
   }
 };
+
+//Promise.all(fileNameArray)
+//.then(items => callback(null, items), err => callback(err));
+
+/*
+exports.readAll = (callback) => {
+  fs.readdir(exports.dataDir, (err, files) => {
+    var result = [];
+    if (err) {
+      throw ('We have an error trying to read all files');
+    } else {
+      var info = _.map(files, (x) => {
+        //find id and create a filepath
+        var fileName = path.basename(x);
+        var id = Number(fileName.slice(0, fileName.length - 4));
+        var filepath = path.join(exports.dataDir, `${id}.txt`);
+        readFilePromise(filepath)
+          .then(text => {
+            result.push({id: id, text: text});
+          });
+      });
+      console.log(result);
+      if (err) {
+        callback(err);
+      } else {
+        callback(info);
+      }
+    }
+  });
+};
+exports.readAll = (callback) => {
+  fs.readdir(exports.dataDir, (err, files) => {
+    if (err) {
+      throw ('We have an error trying to read all files');
+    }
+
+    var info = _.map(files, (x) => {
+      //find id and create a filepath
+      var fileName = path.basename(x);
+      var id = fileName.slice(0, fileName.length - 4);
+      var filepath = path.join(exports.dataDir, fileName);
+      return readFilePromise(filepath).then(text => {
+        return {id, text: text.toString()};
+      });
+    });
+    Promise.all(info)
+      .then(items => callback(null, items), err => callback(err));
+  });
+};
+*/
+
+
+// var data = [];
+
+// fsAll.readdirAsync(exports.dataDir)
+//   .then((fileNames) => {
+//     fileNames.forEach((file) => {
+//       var filePath = path.join(exports.dataDir, file);
+//       fsAll.readfileAsync(filePath, 'utf-8')
+//         .then((text) => {
+//           var toDo = {id: file, text: text};
+//           data.push(toDo);
+//         });
+//     });
+//   });
